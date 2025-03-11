@@ -1,0 +1,17 @@
+# Python Virtual Environment
+.venv
+
+# Cosmic Reach Jars
+client.jar
+server.jar
+
+# Cosmic Reach Files
+bannedAccounts.txt
+bannedIPs.txt
+gameSettings.json
+operatorAccounts.txt
+whitelist.txt
+worlds
+
+# Stuff test scripts output
+skin.png
