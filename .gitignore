@@ -15,3 +15,6 @@ worlds
 
 # Stuff test scripts output
 skin.png
+
+# poetry dist
+dist
