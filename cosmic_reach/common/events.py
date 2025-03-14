@@ -43,21 +43,20 @@ class FilterableListenableEvent(ListenableEvent):
     ) -> None:
         self._handlers.append((handler, filter_))
 
-    @overload
-    def __call__(
-        self, handler: Callable[..., Coroutine[Any, Any, None]]
-    ) -> Callable[..., Coroutine[Any, Any, None]]: ...
-    @overload
-    def __call__(
-        self, handler: Callable[..., Coroutine[Any, Any, None]], filter_: Any
-    ) -> Callable[..., Coroutine[Any, Any, None]]: ...
+    def only(self, filter_: Any) -> Callable[
+        [Callable[..., Coroutine[Any, Any, None]]],
+        Callable[..., Coroutine[Any, Any, None]],
+    ]:
+        return lambda handler: self.add_handler(handler, filter_)
 
     def __call__(
         self,
         handler: Callable[..., Coroutine[Any, Any, None]],
-        filter_: Any | None = None,
     ) -> Callable[..., Coroutine[Any, Any, None]]:
-        self.add_handler(handler, filter_)
+        if callable(handler):
+            self.add_handler(handler)
+            return handler
+        self.add_handler(handler, None)
         return handler
 
     async def emit(self, filter_, *args, **kwargs) -> None:
