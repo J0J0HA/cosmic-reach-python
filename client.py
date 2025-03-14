@@ -1,9 +1,9 @@
 import asyncio
 from pathlib import Path
-from src.common.types import RememberedPlayer
-from src.client import Client
-from src.protocol import packets
-from src.types.json.accounts import OfflineAccount
+from cosmic_reach.common.types import RememberedPlayer
+from cosmic_reach.client import Client
+from cosmic_reach.protocol import packets
+from cosmic_reach.types.json.accounts import OfflineAccount
 
 
 async def main():

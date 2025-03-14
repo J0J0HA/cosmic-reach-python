@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from src import versions as crversions
+from cosmic_reach import versions as crversions
 
 
 def main():
