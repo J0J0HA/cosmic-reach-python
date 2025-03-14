@@ -1,16 +1,15 @@
 [project]
-name = "UNNAMED"
+name = "cosmic-reach"
 version = "0.0.1"
-description = ""
-authors = [
-    {name = "JoJoJux",email = "80523427+J0J0HA@users.noreply.github.com"}
-]
+description = "THIS PROJECT IS NOT AFFILIATED WITH OR SUPPORTED BY COSMIC REACH / FINALFOREACH! This is a python implementaion of Cosmic Reach's protocol."
+authors = [{ name = "JoJoJux", email = "info@jojojux.de" }]
 readme = "README.md"
 requires-python = ">=3.13,<4.0"
 dependencies = [
     "dataclasses-json (>=0.6.7,<0.7.0)",
     "requests (>=2.32.3,<3.0.0)",
 ]
+license = { file = "LICENSE" }
 
 
 [build-system]
