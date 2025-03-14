@@ -5,7 +5,7 @@ from typing import Callable
 from ..common.events import FilterableListenableEvent, ListenableEvent
 from ..common.types import RememberedPlayer
 from ..protocol import GamePacketRegistry, packets
-from ..types.accounts import Account
+from ..types.json.accounts import Account
 from .base import BaseClient
 
 
@@ -18,7 +18,7 @@ class Client(BaseClient):
     "The version the client is made for"
     account: Account = None
     "The account the client is or will be logged in with"
-    logged_in: bool = False
+    in_world: bool = False
     "Whether the client has logged in yet"
 
     class Events(BaseClient.Events):
@@ -48,14 +48,14 @@ class Client(BaseClient):
         )
         self.events.packet.add_handler(
             lambda p: self.events.chat.emit(
-                p.player_unique_id, (p.player_unique_id, p.message)
+                p.player_unique_id, p.message
             ),
             packets.general.MessagePacket,
         )
 
     async def _handle_zone_packet(self, packet: packets.general.ZonePacket):
         await self.send_packet(packets.meta.WorldRecievedGamePacket())
-        self.logged_in = True
+        self.in_world = True
         await self.events.join.emit()
 
     async def _handle_player_packet(self, packet: packets.entities.PlayerPacket):
@@ -102,8 +102,8 @@ class Client(BaseClient):
         await self.send_packet(
             packets.meta.ProtocolSyncPacket.create(self.packet_registry, self.VERSION)
         )
-        await self.send_packet(packets.meta.LoginPacket(self.account))
-        self.logged_in = True
+        await self.send_packet(packets.meta.LoginPacket("offline", self.account))
+        self.in_world = True
         await self.events.login.emit()
 
     def get_player(self, unique_id: str):
@@ -116,7 +116,7 @@ class Client(BaseClient):
             raise KeyError(f"Player with uniqueId {unique_id} is unknown")
         return player
 
-    async def send_chat(self, message: str, display_name_prefix: bool = True):
+    async def send_chat(self, message: str):
         """Send a chat message
 
         :param message: The message to send
@@ -125,8 +125,8 @@ class Client(BaseClient):
         await self.send_packet(
             packets.general.MessagePacket(
                 (
-                    (self.account.get_display_name() + "> ")
-                    if display_name_prefix
+                    (self.account.display_name + "> ")
+                    if not self.in_world
                     else ""
                 )
                 + message,

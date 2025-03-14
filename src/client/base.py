@@ -62,8 +62,10 @@ class BaseClient:
         If no packet is waiting in the buffer, this function will wait until one package is received.
         """
         await self.rlock.acquire()
-        result = self.packet_registry.deserialize_packet(self.buffer)
-        self.rlock.release()
+        try:
+            result = self.packet_registry.deserialize_packet(self.buffer)
+        finally:
+            self.rlock.release()
         return result
 
     async def connect(self, host: str = "localhost", port: int = 47137):
@@ -81,7 +83,6 @@ class BaseClient:
             try:
                 packet = await self.receive_packet()
             except Exception as e:
-                print("----- ERROR -----")
                 traceback.print_exception(e)
                 print("-----------------")
             else:
