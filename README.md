@@ -1,5 +1,7 @@
 # `comsic-reach` python library
 
+![PyPI - Version](https://img.shields.io/pypi/v/cosmic-reach)
+
 > [!IMPORTANT]
 > THIS PROJECT IS NEITHER AFFILIATED WITH, NOR SUPPORTED BY COSMIC REACH AND/OR FINALFOREACH
 
