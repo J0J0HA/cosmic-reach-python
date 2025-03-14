@@ -1,298 +1,271 @@
 import io
 import json
 import struct
-from abc import ABC, ABCMeta, abstractmethod
-from typing import Any
+from enum import Enum
+from typing import Union
 
 from dataclasses_json import DataClassJsonMixin
 
 from . import wjson
-
-
-def bytes_to_buffer(_b: bytes):
-    return io.BytesIO(_b)
-
-
-def buffer_to_bytes(buf: io.BytesIO) -> bytes:
-    return buf.read()
+from .serializer import deserialize, deserializer_for, serialize, serializer_for
 
 
 def consuming_unpack(format_: str, buf: io.BytesIO) -> tuple:
-    return struct.unpack(format_, buf.read(struct.calcsize(format)))
+    return struct.unpack(format_, buf.read(struct.calcsize(format_)))
 
 
-class ABCIOTypeMeta(ABCMeta):
-    def __or__(self, other: "IOType") -> "Union":
-        return Union(Byte, (self, other))
+class Byte(int):
+    pass
 
 
-class ABCIOType(metaclass=ABCIOTypeMeta):
-    _FOR: type
-
-    def to_cr_bytes(self) -> bytes:
-        raise NotImplementedError
-
-    def to_cr_buffer(self, buf: io.BytesIO) -> None:
-        return buf.write(self.to_cr_bytes())
-
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "IOType":
-        raise NotImplementedError
-
-    @classmethod
-    def from_cr_bytes(cls, _b: bytes) -> "IOType":
-        return cls.from_cr_buffer(bytes_to_buffer(_b))
+class UByte(int):
+    pass
 
 
-class IOTypeMeta(type):
-    def __or__(self, other: "IOType") -> "Union":
-        return Union(Byte, self, other)
+class Short(int):
+    pass
 
 
-class IOType(metaclass=IOTypeMeta):
-    _FOR: type
+class Long(int):
+    pass
 
-    def to_cr_bytes(self) -> bytes:
-        raise NotImplementedError
 
-    def to_cr_buffer(self, buf: io.BytesIO) -> None:
-        return buf.write(self.to_cr_bytes())
+class Double(int):
+    pass
+
+
+class Complex:
+    def __init__(self, *args, **kwargs):
+        for key, val in zip(type(self).__annotations__.keys(), args):
+            setattr(self, key, val)
+
+        for key, val in kwargs.items():
+            setattr(self, key, val)
 
     @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "IOType":
-        raise NotImplementedError
+    def from_dict(cls, data: dict):
+        return cls(**data)
 
-    @classmethod
-    def from_cr_bytes(cls, _b: bytes) -> "IOType":
-        return cls.from_cr_buffer(bytes_to_buffer(_b))
 
+class _Repeat:
+    _t: type
 
-class Bool(int, IOType):
-    _FOR = bool
+    def __init__(self, item):
+        self._t = item
 
-    def to_cr_bytes(self) -> bytes:
-        return int.to_bytes(1, "big")
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> bool:
-        return bool(cls.from_bytes(buf.read(1), "big"))
+class _RepeatMeta(type):
+    def __getitem__(self, item):
+        return _Repeat(item)
 
 
-class Byte(int, IOType):
-    _FOR = int
+class Repeat(list, metaclass=_RepeatMeta): ...
 
-    def to_cr_bytes(self) -> bytes:
-        return int.to_bytes(1, "big")
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Byte":
-        return cls(cls.from_bytes(buf.read(1), "big"))
+class _Tuple:
+    _t: tuple[type]
 
+    def __init__(self, item):
+        self._t = item
 
-class Int(int, IOType):
-    _FOR = int
 
-    def to_cr_bytes(self) -> bytes:
-        return self.to_bytes(4, "big")
+class _TupleMeta(type):
+    def __getitem__(self, item):
+        return _Tuple(item)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Int":
-        return cls.from_bytes(buf.read(4), "big")
 
+class Tuple(tuple, metaclass=_TupleMeta): ...
 
-class Long(int, IOType):
-    _FOR = int
 
-    def to_cr_bytes(self) -> bytes:
-        return self.to_bytes(8, "big")
+@serializer_for(Byte)
+@serializer_for(bool)
+def serialize_byte[T: Byte | bool](typ: type[T], num: T) -> bytes:
+    return num.to_bytes(1, "big", signed=True)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Long":
-        return cls.from_bytes(buf.read(8), "big")
 
+@deserializer_for(Byte)
+@deserializer_for(bool)
+def deserialize_byte[T: Byte | bool](typ: type[T], buf: io.BytesIO) -> T:
+    return Short.from_bytes(buf.read(1), "big", signed=True)
 
-class Float(float, IOType):
-    _FOR = float
 
-    def to_cr_bytes(self) -> bytes:
-        return struct.pack(">f", self)
+@serializer_for(UByte)
+def serialize_ubyte[T: UByte](typ: type[T], num: T) -> bytes:
+    return num.to_bytes(1, "big", signed=False)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Float":
-        return cls(consuming_unpack(">f", buf)[0])
 
+@deserializer_for(UByte)
+def deserialize_ubyte[T: UByte](typ: type[T], buf: io.BytesIO) -> T:
+    return Short.from_bytes(buf.read(1), "big", signed=False)
 
-class Double(float, IOType):
-    _FOR = int
 
-    def to_cr_bytes(self) -> bytes:
-        return struct.pack(">d", self)
+@serializer_for(Short)
+def serialize_short[T: Short](typ: type[T], num: T) -> bytes:
+    return num.to_bytes(2, "big", signed=True)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Double":
-        return cls(consuming_unpack(">d", buf)[0])
 
+@deserializer_for(Short)
+def deserialize_short[T: Short](typ: type[T], buf: io.BytesIO) -> T:
+    return Short.from_bytes(buf.read(2), "big", signed=True)
 
-class Short(int, IOType):
-    _FOR = int
 
-    def to_cr_bytes(self) -> bytes:
-        return self.to_bytes(2, "big")
+@serializer_for(Long)
+def serialize_long[T: Long](typ: type[T], num: T) -> bytes:
+    return num.to_bytes(8, "big", signed=True)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Short":
-        return cls.from_bytes(buf.read(2), "big")
 
+@deserializer_for(Long)
+def deserialize_long[T: Long](typ: type[T], buf: io.BytesIO) -> T:
+    return Long.from_bytes(buf.read(8), "big", signed=True)
 
-class Bytes(bytes, IOType):
-    _FOR = str
 
-    def to_cr_bytes(self) -> bytes:
-        if len(self) == 0:
-            return (-1).to_bytes(4, "big", signed=True)
-        return len(self).to_bytes(4, "big") + self
+@serializer_for(int)
+def serialize_int[T: int](typ: type[T], num: T) -> bytes:
+    return num.to_bytes(4, "big", signed=True)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Short":
-        length = int.from_bytes(buf.read(4), "big")
-        if length == -1:
-            return ""
-        return cls(buf.read(length))
 
+@deserializer_for(int)
+def deserialize_int[T: int](typ: type[T], buf: io.BytesIO) -> T:
+    return int.from_bytes(buf.read(4), "big", signed=True)
 
-class String(str, IOType):
-    _FOR = str
 
-    def to_cr_bytes(self) -> bytes:
-        if len(self) == 0:
-            return (-1).to_bytes(4, "big", signed=True)
-        return len(self).to_bytes(4, "big") + self.encode("utf-8")
+@serializer_for(Double)
+def serialize_double[T: Double](typ: type[T], num: T) -> bytes:
+    return struct.pack(">d", num)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Short":
-        length = int.from_bytes(buf.read(4), "big")
-        if length == -1:
-            return ""
-        return cls(buf.read(length).decode("utf-8"))
 
+@deserializer_for(Double)
+def deserialize_double[T: Double](typ: type[T], buf: io.BytesIO) -> T:
+    return Double(consuming_unpack(">d", buf)[0])
 
-class JSON(dict, IOType):
-    _FOR = dict
 
-    def to_cr_bytes(self) -> bytes:
-        return String(json.dumps(self)).to_cr_bytes()
+@serializer_for(float)
+def serialize_float[T: float](typ: type[T], num: T) -> bytes:
+    return struct.pack(">f", num)
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> "Int":
-        st = String.from_cr_buffer(buf)
-        return cls(wjson.loads(st))
 
+@deserializer_for(float)
+def deserialize_float[T: float](typ: type[T], buf: io.BytesIO) -> T:
+    return consuming_unpack(">f", buf)[0]
 
-class IJSONSerializable(ABC):
-    @abstractmethod
-    def get_dict(self) -> dict: ...
 
-    @classmethod
-    @abstractmethod
-    def from_dict[T: "IJSONSerializable"](cls: T, data: dict) -> T: ...
+@serializer_for(bytes)
+def serialize_bytes[T: bytes](typ: type[T], byt: T) -> bytes:
+    return serialize_int(int, len(byt)) + byt
 
 
-class JSONSerializable[T: IJSONSerializable](IJSONSerializable, ABCIOType):
-    _FOR = IJSONSerializable
+@deserializer_for(bytes)
+def deserialize_bytes[T: bytes](typ: type[T], buf: io.BytesIO) -> T:
+    length = deserialize_int(int, buf)
+    return buf.read(length)
 
-    def to_cr_bytes(self) -> bytes:
-        return JSON(self.get_dict()).to_cr_bytes()
 
-    @classmethod
-    def from_cr_buffer(cls, buf: io.BytesIO) -> T:
-        return cls.from_dict(JSON.from_cr_buffer(buf))
+@serializer_for(str)
+def serialize_str[T: str](typ: type[T], string: T) -> bytes:
+    return serialize_bytes(bytes, string.encode("utf-8"))
 
 
-class JSONDataclass(DataClassJsonMixin):
-    _FOR = DataClassJsonMixin
+@deserializer_for(str)
+def deserialize_str[T: str](typ: type[T], buf: io.BytesIO) -> T:
+    return deserialize_bytes(bytes, buf).decode("utf-8")
 
-    def to_cr_bytes(self) -> bytes:
-        return JSON(self.schema().dump(self)).to_cr_bytes()
 
-    @classmethod
-    def from_cr_buffer[T: "JSONDataclass"](cls: T, buf: io.BytesIO) -> T:
-        return cls.schema().load(JSON.from_cr_buffer(buf))
+@serializer_for(_Repeat)
+def serialize_arr[T: Repeat](typ: type[T], vals: T) -> bytes:
+    return serialize_int(int, len(vals)) + b"".join(
+        serialize(val, typ._t) for val in vals
+    )
 
 
-def Tuple(*typs: type[IOType]) -> type[IOType]:
-    class _Tuple(tuple[typs], IOType):
-        _FOR = tuple
+@deserializer_for(_Repeat)
+def deserialize_arr[T: Repeat](typ: type[T], buf: io.BytesIO) -> T:
+    length = deserialize_int(int, buf)
+    return [deserialize(typ._t, buf) for _ in range(length)]
 
-        def to_cr_bytes(self) -> bytes:
-            return b"".join(typ.to_cr_bytes(item) for typ, item in zip(typs, self))
 
-        @classmethod
-        def from_cr_buffer(cls, buf: io.BytesIO) -> "Int":
-            return cls(typ.from_cr_buffer(buf) for typ in typs)
+@serializer_for(_Tuple)
+def serialize_tup[T: Tuple](typ: type[T], vals: T) -> bytes:
+    return b"".join(serialize(val, subtyp) for val, subtyp in zip(vals, typ._t))
 
-    return _Tuple
 
+@deserializer_for(_Tuple)
+def deserialize_tup[T: Tuple](typ: type[T], buf: io.BytesIO) -> T:
+    return [deserialize(subtyp, buf) for subtyp in typ._t]
 
-def Repeat[T: IOType](typ: type[T], amount: type[IOType]) -> type[IOType]:
-    class _Repeat(list[T], IOType):
-        _FOR = list
 
-        def to_cr_bytes(self) -> bytes:
-            return bytes(
-                amount.to_cr_bytes(len(self))
-                + b"".join(typ.to_cr_bytes(item) for item in self)
-            )
+@serializer_for(dict)
+def serialize_json[T: dict](typ: type[T], json_: T) -> bytes:
+    return serialize_str(str, json.dumps(json_))
 
-        @classmethod
-        def from_cr_buffer(cls, buf: io.BytesIO) -> "Int":
-            length = amount.from_cr_buffer(buf)
-            return cls(typ.from_cr_buffer(buf) for _ in range(length))
 
-    return _Repeat
+@deserializer_for(dict)
+def deserialize_json[T: dict](typ: type[T], buf: io.BytesIO) -> T:
+    return wjson.loads(deserialize_str(str, buf))
 
 
-def Union[T: IOType](declare_typ: type[IOType], *typs: T) -> T:
-    class _UnionMeta(IOTypeMeta):
-        def __call__(self, value: T):
-            if not any(isinstance(value, typ._FOR) for typ in typs):
-                raise TypeError("Union does not support that type")
-            return value
+@serializer_for(DataClassJsonMixin)
+def serialize_dataclass[T: DataClassJsonMixin](typ: type[T], dataclass: T) -> bytes:
+    return serialize_json(dict, dataclass.to_dict())
 
-        def __or__(self, other: IOType):
-            return Union(declare_typ, *typs, other)
 
-    class _Union(IOType, metaclass=_UnionMeta):
-        def to_cr_bytes(self) -> bytes:
-            for idx, typ in enumerate(typs):
-                if isinstance(self, typ._FOR):
-                    return declare_typ.to_cr_bytes(idx) + typ(self).to_cr_bytes()
-            raise TypeError("Union does not support that type")
+@deserializer_for(DataClassJsonMixin)
+def deserialize_dataclass[T: DataClassJsonMixin](typ: type[T], buf: io.BytesIO) -> T:
+    return typ.from_dict(deserialize_json(dict, buf))
 
-        @classmethod
-        def from_cr_buffer(cls, buf: io.BytesIO) -> T:
-            typ_idx = declare_typ.from_cr_buffer(buf)
-            return typs[typ_idx].from_cr_buffer(buf)
 
-    return _Union
+@serializer_for(Complex)
+def serialize_complex[T: Complex](typ: type[T], complex: T) -> bytes:
+    all_annotations = complex.__annotations__
+    for base in typ.__bases__:
+        all_annotations.update(base.__annotations__)
 
+    result = b""
 
-def OneOfMapped[T: IOType](declare_typ: type[IOType], typs: dict[Any, T]) -> T:
-    class _OneOfMappedMeta(IOTypeMeta):
-        def __call__(self, value: T):
-            if not any(isinstance(value, typ._FOR) for typ in typs.values()):
-                raise TypeError("OneOfMapped does not support that type")
-            return value
+    for attr, subtyp in all_annotations.items():
+        if not hasattr(complex, attr):
+            raise ValueError(f"Missing attribute {attr} in {complex}")
 
-    class _OneOfMapped(IOType, metaclass=_OneOfMappedMeta):
-        def to_cr_bytes(self) -> bytes:
-            for mdx, typ in typs.items():
-                if isinstance(self, typ._FOR):
-                    return declare_typ.to_cr_bytes(mdx) + typ(self).to_cr_bytes()
-            raise TypeError("OneOfMapped does not support that type")
+        result += serialize(getattr(complex, attr), subtyp)
+    return result
 
-        @classmethod
-        def from_cr_buffer(cls, buf: io.BytesIO) -> T:
-            typ_mdx = declare_typ.from_cr_buffer(buf)
-            return typs[typ_mdx].from_cr_buffer(buf)
 
-    return _OneOfMapped
+@deserializer_for(Complex)
+def deserialize_complex[T: Complex](typ: type[T], buf: io.BytesIO) -> T:
+    all_annotations = typ.__annotations__
+    for base in typ.__bases__:
+        all_annotations.update(base.__annotations__)
+
+    result = {}
+
+    for attr, subtyp in all_annotations.items():
+        result[attr] = deserialize(subtyp, buf)
+
+    return typ.from_dict(result)
+
+
+@serializer_for(Union)
+def serialize_union[T: Union](typ: type[T], uni: T) -> bytes:
+    for idx, subtyp in enumerate(typ.__args__):
+        if isinstance(uni, subtyp):
+            break
+    else:
+        raise ValueError(f"Invalid type {type(uni)} for {typ}")
+
+    return serialize_byte(Byte, idx) + serialize(uni, subtyp)
+
+
+@deserializer_for(Union)
+def deserialize_union[T: Union](typ: type[T], buf: io.BytesIO) -> T:
+    idx = deserialize_byte(Byte, buf)
+    return deserialize(typ.__args__[idx], buf)
+
+
+@serializer_for(Enum)
+def serialize_enum[T: Enum](typ: type[T], enm: T) -> bytes:
+    return serialize_byte(UByte, enm.value)
+
+
+@deserializer_for(Enum)
+def deserialize_enum[T: Enum](typ: type[T], buf: io.BytesIO) -> T:
+    idx = deserialize_byte(UByte, buf)
+    return typ(idx)

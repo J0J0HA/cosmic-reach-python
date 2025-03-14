@@ -1,9 +1,7 @@
 import enum
 from dataclasses import dataclass
 
-from dataclasses_json import LetterCase, config
-
-from ..io.types import JSONDataclass
+from dataclasses_json import LetterCase, config, DataClassJsonMixin
 from .java import Vec3
 
 
@@ -13,14 +11,14 @@ class PlayerGamemode(enum.Enum):
 
 
 @dataclass
-class UniqueID(JSONDataclass):
+class UniqueID(DataClassJsonMixin):
     time: int
     rand: int
     number: int
 
 
 @dataclass
-class LocalBoundingBox(JSONDataclass):
+class LocalBoundingBox(DataClassJsonMixin):
     min: Vec3
     max: Vec3
     cnt: Vec3
@@ -28,7 +26,7 @@ class LocalBoundingBox(JSONDataclass):
 
 
 @dataclass
-class Entity(JSONDataclass):
+class Entity(DataClassJsonMixin):
     dataclass_json_config = config(letter_case=LetterCase.CAMEL)["dataclasses_json"]
 
     unique_id: UniqueID
@@ -38,10 +36,15 @@ class Entity(JSONDataclass):
     local_bounding_box: dict
     acceleration: Vec3 | None = None
     age: float | None = None
+    last_view_direction: Vec3 = None
+    view_direction: Vec3 = None
+    footstep_timer: float = None
+    is_on_ground: bool = None
+    collided_y: bool = None
 
 
 @dataclass
-class SlotContainer(JSONDataclass):
+class SlotContainer(DataClassJsonMixin):
     dataclass_json_config = config(letter_case=LetterCase.CAMEL)["dataclasses_json"]
 
     slots: str
@@ -49,7 +52,7 @@ class SlotContainer(JSONDataclass):
 
 
 @dataclass
-class Player(JSONDataclass):
+class Player(DataClassJsonMixin):
     dataclass_json_config = config(letter_case=LetterCase.CAMEL)["dataclasses_json"]
 
     gamemode: PlayerGamemode

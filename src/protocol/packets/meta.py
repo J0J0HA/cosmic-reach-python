@@ -1,20 +1,16 @@
 from ...io.types import (
-    Bool,
-    Int,
     Long,
-    OneOfMapped,
     Repeat,
-    String,
     Tuple,
 )
-from ...types.accounts import OfflineAccount
+from ...types.json.accounts import OfflineAccount
 from ..generic import GamePacket, GamePacketRegistry
 
 
 class ProtocolSyncPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.ProtocolSyncPacket"
-    packets: Repeat(Tuple(String, Int), Int)
-    game_version: String
+    packets: Repeat[Tuple[str, int]]
+    game_version: str
 
     @classmethod
     def create(cls, packet_registry: GamePacketRegistry, game_version: str):
@@ -29,17 +25,20 @@ class ProtocolSyncPacket(GamePacket):
 
 class TransactionPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.TransactionPacket"
+    
     id: Long
 
 
 class LoginPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.LoginPacket"
-    account: OneOfMapped(String, {"offline": OfflineAccount})
+    account_type: str
+    account: OfflineAccount # OneOfMapped(String, {"offline": OfflineAccount})
 
 
 class RemovedPlayerPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.RemovedPlayerPacket"
-    account_id: String
+    
+    account_id: str
 
 
 class WorldRecievedGamePacket(GamePacket):
@@ -50,24 +49,28 @@ class WorldRecievedGamePacket(GamePacket):
 
 class SetNetworkSetting(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.SetNetworkSetting"
-    key: String
-    value: Bool | Int
+    
+    key: str
+    value: bool | int
 
 
 class ChallengeLoginPacket(GamePacket):
     PACKET_NAME = (
         "finalforeach.cosmicreach.networking.packets.meta.ChallengeLoginPacket"
     )
-    challenge: String
+    
+    challenge: str
 
 
 class ItchSessionTokenPacket(GamePacket):
     PACKET_NAME = (
         "finalforeach.cosmicreach.networking.packets.meta.ItchSessionTokenPacket"
     )
-    session_token: String
+    
+    session_token: str
 
 
 class DisconnectPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.DisconnectPacket"
-    reason: String
+    
+    reason: str

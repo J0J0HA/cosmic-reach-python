@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
-from ..types.accounts import Account
-from ..types.entities import Player
+from ..types.json.accounts import Account
+from ..types.json.entities import Player
 
 
 @dataclass
