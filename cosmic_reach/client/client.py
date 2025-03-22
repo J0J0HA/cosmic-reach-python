@@ -76,7 +76,7 @@ class Client(BaseClient):
 
     async def _handle_protocol_sync(self, packet: packets.meta.ProtocolSyncPacket):
         if self.VERSION != packet.game_version:
-            raise ValueError("[Protocol Sync] Game version mismatch")
+            raise ValueError(f"[Protocol Sync] Game version mismatch: Client is on {self.VERSION}, server on {packet.game_version}")
 
         new_packets = GamePacketRegistry()
 

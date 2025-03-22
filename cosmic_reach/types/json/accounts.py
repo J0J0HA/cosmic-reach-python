@@ -68,7 +68,6 @@ class ItchAccount(Account):
         resp.raise_for_status()
         data = resp.json()
         assert "user" in data
-        print(data["user"])
         profile = ItchProfile.from_dict(data["user"])
         acc = cls(
             f"itch:{profile.username}",

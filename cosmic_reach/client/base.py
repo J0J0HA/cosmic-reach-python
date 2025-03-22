@@ -13,7 +13,9 @@ class SocketReadBuffer:
         self.sock = sock
 
     def read(self, length):
-        return self.sock.recv(length)
+        read = self.sock.recv(length)
+        while len(read) < length:
+            read += self.sock.recv(length - len(read))
 
     def write(self, buf: io.BytesIO):
         return self.sock.send(buf)
