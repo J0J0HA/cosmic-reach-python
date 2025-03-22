@@ -1,17 +1,23 @@
 import asyncio
+import os
 from pathlib import Path
-from cosmic_reach.common.types import RememberedPlayer
+
+import dotenv
+
 from cosmic_reach.client import Client
+from cosmic_reach.common.types import RememberedPlayer
 from cosmic_reach.protocol import packets
-from cosmic_reach.types.json.accounts import OfflineAccount
+from cosmic_reach.types.json.accounts import ItchAccount
 
 
 async def main():
-    client = Client(OfflineAccount.with_name("Bot"))
+    dotenv.load_dotenv()
 
-    @client.events.login
-    async def on_logged_in():
-        await client.send_chat("Hi, I just logged in!")
+    client = Client(ItchAccount.from_api_key(os.getenv("ITCH_API_KEY")))
+
+    @client.events.join
+    async def on_self_join():
+        await client.send_chat("Hi, I just joined!")
 
     @client.events.chat
     async def on_chat(player_unique_id: str, message: str):

@@ -13,6 +13,9 @@ operatorAccounts.txt
 whitelist.txt
 worlds
 
+# Secrets
+.env
+
 # Stuff test scripts output
 skin.png
 
