@@ -45,11 +45,13 @@ class Client(BaseClient):
             self._handle_zone_packet, packets.general.ZonePacket
         )
         self.events.packet.add_handler(
-            lambda p: self.events.chat.emit(
-                p.player_unique_id, p.message
-            ),
+            lambda p: self.events.chat.emit(p.player_unique_id, p.message),
             packets.general.MessagePacket,
         )
+        self.events.login.add_handler(self._handle_login_finished)
+
+    async def _handle_login_finished(self):
+        self.in_world = True
 
     async def _handle_zone_packet(self, packet: packets.general.ZonePacket):
         await self.send_packet(packets.meta.WorldRecievedGamePacket())
@@ -67,7 +69,9 @@ class Client(BaseClient):
                 self.players[packet.account.unique_id],
             )
 
-    async def _handle_player_skin_packet(self, packet: packets.entities.PlayerSkinPacket):
+    async def _handle_player_skin_packet(
+        self, packet: packets.entities.PlayerSkinPacket
+    ):
         self.players[packet.player_unique_id].skin = packet.texture_bytes
 
     async def _handle_protocol_sync(self, packet: packets.meta.ProtocolSyncPacket):
@@ -101,8 +105,6 @@ class Client(BaseClient):
             packets.meta.ProtocolSyncPacket.create(self.packet_registry, self.VERSION)
         )
         await self.account.login_to(self)
-        self.in_world = True
-        await self.events.login.emit()
 
     def get_player(self, unique_id: str):
         """Get a player by his :code:``uniqueId``
@@ -122,11 +124,7 @@ class Client(BaseClient):
         """
         await self.send_packet(
             packets.general.MessagePacket(
-                (
-                    (self.account.display_name + "> ")
-                    if not self.in_world
-                    else ""
-                )
+                ((self.account.display_name + "> ") if not self.in_world else "")
                 + message,
                 "",
             )

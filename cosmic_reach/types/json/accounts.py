@@ -46,6 +46,7 @@ class OfflineAccount(Account):
 
     async def login_to(self, client: "Client"):
         await client.send_packet(packets.meta.LoginPacket(self))
+        await client.events.login.emit()
 
 
 @dataclass
@@ -95,6 +96,7 @@ class ItchAccount(Account):
             await client.send_packet(
                 packets.meta.ItchSessionTokenPacket(data["sessionToken"])
             )
+            await client.events.login.emit()
 
         await client.send_packet(packets.meta.LoginPacket(self))
 
