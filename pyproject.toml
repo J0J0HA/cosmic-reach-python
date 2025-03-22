@@ -1,6 +1,6 @@
 [project]
 name = "cosmic-reach"
-version = "0.1.1"
+version = "0.1.2"
 description = "THIS PROJECT IS NOT AFFILIATED WITH OR SUPPORTED BY COSMIC REACH / FINALFOREACH! This is a python implementaion of Cosmic Reach's protocol."
 authors = [{ name = "JoJoJux", email = "info@jojojux.de" }]
 readme = "README.md"
