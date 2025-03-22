@@ -64,6 +64,8 @@ class BaseClient:
         await self.rlock.acquire()
         try:
             result = self.packet_registry.deserialize_packet(self.buffer)
+        except ConnectionAbortedError:
+            raise SystemExit
         finally:
             self.rlock.release()
         return result
