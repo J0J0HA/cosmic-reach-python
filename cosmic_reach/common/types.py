@@ -1,13 +1,15 @@
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Optional
 
-from ..types.json.accounts import Account
-from ..types.json.entities import Player
+if TYPE_CHECKING:
+    from ..types.json.accounts import Account
+    from ..types.json.entities import Player
 
 
 @dataclass
 class RememberedPlayer:
-    account: Account | None = None
-    player: Player | None = None
+    account: Optional["Account"] = None
+    player: Optional["Player"] = None
     skin: bytes | None = None
 
     def is_known(self) -> bool:

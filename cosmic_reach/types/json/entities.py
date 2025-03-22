@@ -1,7 +1,8 @@
 import enum
 from dataclasses import dataclass
 
-from dataclasses_json import LetterCase, config, DataClassJsonMixin
+from dataclasses_json import DataClassJsonMixin, LetterCase, config
+
 from .java import Vec3
 
 

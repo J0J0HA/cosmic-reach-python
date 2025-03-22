@@ -1,5 +1,5 @@
 import asyncio
-from typing import Any, Coroutine, Callable, overload
+from typing import Any, Callable, Coroutine
 
 
 class ListenableEvent:
