@@ -1,20 +1,25 @@
 import io
-from typing import Any, Callable
 import typing
+from typing import Any, Callable
+
+from .htypes import KeyedUnion
 
 
 class Store:
     serializers: dict[type, Callable[[type, Any], bytes]]
     deserializers: dict[type, Callable[[type, io.BytesIO], Any]]
-    
+
     def __init__(self):
         self.serializers = {}
         self.deserializers = {}
 
+
 store = Store()
 
 
-def serializer_for(cls) -> Callable[[Callable[[type, Any], bytes]], Callable[[type, Any], bytes]]:
+def serializer_for(
+    cls,
+) -> Callable[[Callable[[type, Any], bytes]], Callable[[type, Any], bytes]]:
     def decorator(func: Callable[[type, Any], bytes]):
         store.serializers[cls] = func
         return func
@@ -35,12 +40,14 @@ def deserializer_for(
 def serialize(obj: Any, typ: type | None = None) -> bytes:
     if typ is None:
         typ = type(obj)
-    if typ == typing.Union:
-        serializer = store.deserializers[typing.Union]
+    if typ == (typing.Union, KeyedUnion):
+        serializer = store.serializers[typ]
+    if isinstance(typ, KeyedUnion):
+        serializer = store.serializers[KeyedUnion]
     else:
         comp = isinstance if not isinstance(typ, type) else issubclass
         for made_for, serializer in store.serializers.items():
-            if made_for == typing.Union:
+            if made_for in (typing.Union, KeyedUnion):
                 continue
             if comp(typ, made_for):
                 break
@@ -54,12 +61,12 @@ def serialize(obj: Any, typ: type | None = None) -> bytes:
 
 
 def deserialize[T: Any](typ: type[T], buf: io.BytesIO) -> T:
-    if typ == typing.Union:
-        deserializer = store.deserializers[typing.Union]
+    if typ in (typing.Union, KeyedUnion):
+        deserializer = store.deserializers[typ]
     else:
         comp = isinstance if not isinstance(typ, type) else issubclass
         for made_for, deserializer in store.deserializers.items():
-            if made_for == typing.Union:
+            if made_for in (typing.Union, KeyedUnion):
                 continue
             if comp(typ, made_for):
                 break

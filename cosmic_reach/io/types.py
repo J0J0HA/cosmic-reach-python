@@ -2,11 +2,12 @@ import io
 import json
 import struct
 from enum import Enum
-from typing import Union
+from typing import Any, Union
 
 from dataclasses_json import DataClassJsonMixin
 
 from . import wjson
+from .htypes import KeyedUnion
 from .serializer import deserialize, deserializer_for, serialize, serializer_for
 
 
@@ -269,3 +270,21 @@ def serialize_enum[T: Enum](typ: type[T], enm: T) -> bytes:
 def deserialize_enum[T: Enum](typ: type[T], buf: io.BytesIO) -> T:
     idx = deserialize_byte(UByte, buf)
     return typ(idx)
+
+
+@serializer_for(KeyedUnion)
+def serialize_keyed_union[T: Any](typ: KeyedUnion, uni: T) -> bytes:
+    for key, subtyp in typ._e.items():
+        print(subtyp, uni)
+        if isinstance(uni, subtyp):
+            break
+    else:
+        raise ValueError(f"Invalid type {type(uni)} for {typ}")
+
+    return serialize_str(str, key) + serialize(uni, subtyp)
+
+
+@deserializer_for(KeyedUnion)
+def deserialize_keyed_union[T: Any](typ: KeyedUnion, buf: io.BytesIO) -> T:
+    key = deserialize_str(str, buf)
+    return deserialize(typ._e[key], buf)
