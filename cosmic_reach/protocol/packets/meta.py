@@ -1,9 +1,10 @@
 from ...io.types import (
+    KeyedUnion,
     Long,
     Repeat,
     Tuple,
 )
-from ...types.json.accounts import OfflineAccount
+from ...types.json.accounts import ItchAccount, OfflineAccount
 from ..generic import GamePacket, GamePacketRegistry
 
 
@@ -25,19 +26,19 @@ class ProtocolSyncPacket(GamePacket):
 
 class TransactionPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.TransactionPacket"
-    
+
     id: Long
 
 
 class LoginPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.LoginPacket"
-    account_type: str
-    account: OfflineAccount # OneOfMapped(String, {"offline": OfflineAccount})
+
+    account: KeyedUnion(offline=OfflineAccount, itch=ItchAccount)
 
 
 class RemovedPlayerPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.RemovedPlayerPacket"
-    
+
     account_id: str
 
 
@@ -49,7 +50,7 @@ class WorldRecievedGamePacket(GamePacket):
 
 class SetNetworkSetting(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.SetNetworkSetting"
-    
+
     key: str
     value: bool | int
 
@@ -58,7 +59,7 @@ class ChallengeLoginPacket(GamePacket):
     PACKET_NAME = (
         "finalforeach.cosmicreach.networking.packets.meta.ChallengeLoginPacket"
     )
-    
+
     challenge: str
 
 
@@ -66,11 +67,11 @@ class ItchSessionTokenPacket(GamePacket):
     PACKET_NAME = (
         "finalforeach.cosmicreach.networking.packets.meta.ItchSessionTokenPacket"
     )
-    
+
     session_token: str
 
 
 class DisconnectPacket(GamePacket):
     PACKET_NAME = "finalforeach.cosmicreach.networking.packets.meta.DisconnectPacket"
-    
+
     reason: str

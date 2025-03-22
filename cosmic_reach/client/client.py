@@ -1,6 +1,4 @@
-import threading
 from collections import defaultdict
-from typing import Callable
 
 from ..common.events import FilterableListenableEvent, ListenableEvent
 from ..common.types import RememberedPlayer
@@ -14,7 +12,7 @@ class Client(BaseClient):
     like reading chat messages
     """
 
-    VERSION: str = "0.4.1"
+    VERSION: str = "0.4.4"
     "The version the client is made for"
     account: Account = None
     "The account the client is or will be logged in with"
@@ -102,7 +100,7 @@ class Client(BaseClient):
         await self.send_packet(
             packets.meta.ProtocolSyncPacket.create(self.packet_registry, self.VERSION)
         )
-        await self.send_packet(packets.meta.LoginPacket("offline", self.account))
+        await self.account.login_to(self)
         self.in_world = True
         await self.events.login.emit()
 
